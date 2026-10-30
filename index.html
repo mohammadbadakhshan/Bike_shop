@@ -1,12 +1,223 @@
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>فروشگاه دوچرخه</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>فروشگاه دوچرخه | Bike Shop</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Tahoma,Arial,sans-serif;background:#f5f6f5;color:#202820}
+header{background:#17251d;color:white;padding:18px 6%;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+.logo{font-size:23px;font-weight:bold;color:#a9ed79}
+nav a{color:white;text-decoration:none;margin:0 10px;font-size:14px}
+.cart-btn{background:#a9ed79;color:#17251d;border:0;padding:11px 18px;border-radius:9px;font-weight:bold;cursor:pointer}
+.hero{background:linear-gradient(110deg,#14251b,#354d39);color:white;padding:65px 7%;text-align:center}
+.hero h1{font-size:34px;margin:0 0 15px}
+.hero p{line-height:2;color:#e0e8df}
+.hero button{background:#a9ed79;border:0;padding:14px 28px;border-radius:8px;font-weight:bold;cursor:pointer}
+section{padding:35px 6%}
+.section-title{text-align:center;margin-bottom:28px}
+.section-title h2{font-size:25px}
+.categories{display:flex;justify-content:center;gap:12px;flex-wrap:wrap}
+.category{background:white;border:1px solid #ddd;padding:13px 22px;border-radius:25px}
+.products{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px}
+.product{background:white;border-radius:13px;overflow:hidden;box-shadow:0 3px 14px #0000000c}
+.product img{width:100%;height:175px;object-fit:cover;background:#e8eee8}
+.product-info{padding:16px}
+.product h3{margin:0 0 10px}
+.price{color:#287b35;font-weight:bold;font-size:18px}
+.product button,.main-btn{background:#243d2b;color:white;border:0;padding:12px;border-radius:8px;cursor:pointer;width:100%;margin-top:12px}
+.product button:hover,.main-btn:hover{background:#3c6846}
+.search{display:block;width:100%;max-width:450px;margin:0 auto 25px;padding:13px;border:1px solid #ccc;border-radius:9px;font-size:15px}
+.panel{background:white;border-radius:13px;padding:22px;margin:20px auto;max-width:650px;box-shadow:0 3px 14px #0000000c}
+input,textarea{width:100%;padding:13px;margin:8px 0;border:1px solid #ddd;border-radius:8px;font-family:inherit}
+.cart-item{display:flex;justify-content:space-between;gap:10px;padding:12px 0;border-bottom:1px solid #eee}
+.small-btn{padding:5px 10px;border:0;border-radius:5px;cursor:pointer}
+footer{background:#17251d;color:white;text-align:center;padding:25px;line-height:2}
+.hidden{display:none}
+.notice{background:#fff5d8;padding:13px;border-radius:8px;line-height:2;font-size:13px}
+</style>
 </head>
 <body>
-  <h1>به فروشگاه دوچرخه ما خوش آمدید 🚲</h1>
-  <p>انواع دوچرخه و لوازم جانبی با بهترین قیمت</p>
+
+<header>
+<div class="logo">🚲 BIKE SHOP</div>
+<nav>
+<a href="#home">خانه</a>
+<a href="#products">محصولات</a>
+<a href="#contact">تماس با ما</a>
+</nav>
+<button class="cart-btn" onclick="showCart()">🛒 سبد خرید (<span id="count">0</span>)</button>
+</header>
+
+<div class="hero" id="home">
+<h1>به دنیای دوچرخه خوش آمدید</h1>
+<p>انتخابی بهتر برای مسیرهای هیجان‌انگیز شما</p>
+<button onclick="document.getElementById('products').scrollIntoView({behavior:'smooth'})">مشاهده محصولات</button>
+</div>
+
+<section>
+<div class="section-title"><h2>دسته‌بندی محصولات</h2></div>
+<div class="categories">
+<div class="category">🚵 دوچرخه کوهستان</div>
+<div class="category">🚴 دوچرخه شهری</div>
+<div class="category">🪖 کلاه ایمنی</div>
+<div class="category">⚙️ لوازم جانبی</div>
+</div>
+</section>
+
+<section id="products">
+<div class="section-title"><h2>محصولات فروشگاه</h2><p>محصول مورد نظرت را انتخاب کن</p></div>
+<input class="search" id="search" placeholder="جست‌وجوی محصول..." oninput="filterProducts()">
+<div class="products" id="productList"></div>
+</section>
+
+<section id="cartSection" class="hidden">
+<div class="panel">
+<h2>🛒 سبد خرید شما</h2>
+<div id="cartItems"></div>
+<h3>مبلغ کل: <span id="total">۰</span> تومان</h3>
+<button class="main-btn" onclick="showCheckout()">ادامه و ثبت سفارش</button>
+</div>
+</section>
+<section id="checkout" class="hidden">
+<div class="panel">
+<h2>📝 اطلاعات ثبت سفارش</h2>
+<form id="orderForm">
+<label>نام و نام خانوادگی</label>
+<input id="customer" required placeholder="نام شما">
+<label>شماره موبایل</label>
+<input id="phone" required type="tel" placeholder="09xxxxxxxxx">
+<label>آدرس تحویل سفارش</label>
+<textarea id="address" required placeholder="استان، شهر، خیابان و پلاک"></textarea>
+<button class="main-btn" type="submit">ثبت سفارش</button>
+</form>
+</div>
+</section>
+
+<section id="payment" class="hidden">
+<div class="panel">
+<h2>💳 پرداخت سفارش</h2>
+<p id="orderNumber"></p>
+<h3>مبلغ قابل پرداخت: <span id="payTotal"></span> تومان</h3>
+<div class="notice">
+اطلاعات کارت بانکی فروشگاه در این قسمت قرار می‌گیرد. فعلاً این اطلاعات نمونه است و نباید برای پرداخت واقعی استفاده شود.
+</div>
+<p>شماره کارت: <strong>بعداً توسط فروشگاه تکمیل می‌شود</strong></p>
+<p>پس از واریز، تصویر رسید را برای فروشگاه در ایتا ارسال کنید.</p>
+<button class="main-btn" onclick="sendEitaa()">ارسال رسید در ایتا</button>
+<p id="copyStatus"></p>
+</div>
+</section>
+
+<section id="contact">
+<div class="panel">
+<h2>📞 ارتباط با فروشگاه</h2>
+<p>آدرس: کرمان - آدرس فروشگاه را بعداً وارد می‌کنیم.</p>
+<p>شماره تماس: بعداً تکمیل می‌شود.</p>
+</div>
+</section>
+
+<footer>
+<div class="logo">🚲 BIKE SHOP</div>
+<p>فروشگاه تخصصی دوچرخه و لوازم جانبی</p>
+<p>تمام حقوق محفوظ است.</p>
+</footer>
+
+<script>
+const products=[
+{id:1,name:"دوچرخه کوهستان",price:0,emoji:"🚵",image:"https://images.unsplash.com/photo-1485965120184-e220f721d03e?w=600"},
+{id:2,name:"دوچرخه شهری",price:0,emoji:"🚴",image:"https://images.unsplash.com/photo-1507035895480-2b3156c31fc8?w=600"},
+{id:3,name:"کلاه ایمنی",price:0,emoji:"🪖",image:""},
+{id:4,name:"لوازم جانبی دوچرخه",price:0,emoji:"⚙️",image:""}
+];
+let cart=[];
+let currentOrder=null;
+const money=n=>n.toLocaleString("fa-IR");
+
+function renderProducts(list=products){
+document.getElementById("productList").innerHTML=list.map(p=>
+<div class="product">
+${p.image?<img src="${p.image}" alt="${p.name}" onerror="this.style.display='none'">:<div style="height:175px;display:grid;place-items:center;background:#e8eee8;font-size:65px">${p.emoji}</div>}
+<div class="product-info">
+<h3>${p.name}</h3>
+<p class="price">${p.price?money(p.price)+" تومان":"قیمت به‌زودی اعلام می‌شود"}</p>
+<button onclick="addToCart(${p.id})">افزودن به سبد خرید</button>
+</div></div>).join("");
+}
+
+function filterProducts(){
+let q=document.getElementById("search").value.trim();
+renderProducts(products.filter(p=>p.name.includes(q)));
+}
+
+function addToCart(id){
+let p=products.find(x=>x.id===id);
+if(!p.price){alert("قیمت این محصول هنوز توسط فروشگاه ثبت نشده است.");return;}
+let item=cart.find(x=>x.id===id);
+if(item)item.qty++;else cart.push({...p,qty:1});
+updateCart();
+alert("محصول به سبد خرید اضافه شد.");
+}
+
+function updateCart(){
+document.getElementById("count").textContent=money(cart.reduce((s,p)=>s+p.qty,0));
+document.getElementById("total").textContent=money(cart.reduce((s,p)=>s+p.price*p.qty,0));
+document.getElementById("cartItems").innerHTML=cart.length?cart.map(p=>
+<div class="cart-item">
+<span>${p.name} × ${p.qty}</span>
+<span>${money(p.price*p.qty)} تومان
+<button class="small-btn" onclick="removeItem(${p.id})">حذف</button></span>
+</div>).join(""):"سبد خرید خالی است.";
+}
+
+function removeItem(id){
+cart=cart.filter(p=>p.id!==id);
+updateCart();
+}
+
+function showCart(){
+document.getElementById("cartSection").classList.remove("hidden");
+document.getElementById("checkout").classList.add("hidden");
+document.getElementById("payment").classList.add("hidden");
+document.getElementById("cartSection").scrollIntoView({behavior:"smooth"});
+}
+
+function showCheckout(){
+if(!cart.length){alert("سبد خرید خالی است.");return;}
+document.getElementById("checkout").classList.remove("hidden");
+document.getElementById("checkout").scrollIntoView({behavior:"smooth"});
+}
+document.getElementById("orderForm").addEventListener("submit",function(e){
+e.preventDefault();
+let total=cart.reduce((s,p)=>s+p.price*p.qty,0);
+currentOrder={
+number:"BS-"+Date.now(),
+name:document.getElementById("customer").value,
+phone:document.getElementById("phone").value,
+address:document.getElementById("address").value,
+items:cart.map(p=>p.name+" × "+p.qty).join("، "),
+total:total
+};
+document.getElementById("orderNumber").textContent="شماره سفارش: "+currentOrder.number;
+document.getElementById("payTotal").textContent=money(total);
+document.getElementById("payment").classList.remove("hidden");
+document.getElementById("payment").scrollIntoView({behavior:"smooth"});
+});
+
+function sendEitaa(){
+if(!currentOrder)return;
+let msg="سلام، برای سفارش "+currentOrder.number+" رسید پرداخت دارم.";
+let url="https://eitaa.com/";
+window.open(url,"_blank");
+if(navigator.clipboard){
+navigator.clipboard.writeText(msg).then(()=>{
+document.getElementById("copyStatus").textContent="متن سفارش کپی شد؛ آن را در گفت‌وگوی فروشگاه در ایتا ارسال کنید و تصویر رسید را هم پیوست کنید.";
+}).catch(()=>{document.getElementById("copyStatus").textContent="شماره سفارش: "+currentOrder.number;});
+}
+}
+renderProducts();
+updateCart();
+</script>
 </body>
 </html>
