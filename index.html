@@ -114,7 +114,10 @@ footer{background:#17251d;color:white;text-align:center;padding:25px;line-height
 <div class="panel">
 <h2>📞 ارتباط با فروشگاه</h2>
 <p>آدرس: کرمان - آدرس فروشگاه را بعداً وارد می‌کنیم.</p>
-<p>شماره تماس: بعداً تکمیل می‌شود.</p>
+<p>شماره تماس:
+<a href="tel:09133980985" style="color:inherit">
+09133980985
+</a>
 </div>
 </section>
 
@@ -123,9 +126,14 @@ footer{background:#17251d;color:white;text-align:center;padding:25px;line-height
 <p>فروشگاه تخصصی دوچرخه و لوازم جانبی</p>
 <p>تمام حقوق محفوظ است.</p>
 </footer>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-<script>
-const products=[
+  <script>
+const supabaseClient = window.supabase.createClient(
+  "https://kumtiwfvoavuygevhrjy.supabase.co",
+  "sb_publishable_pA8mhx3UvQUpmhpZ5MLp4w_In0eipwE"
+);
+    const products=[
 {id:1,name:"دوچرخه کوهستان",price:0,emoji:"🚵",image:"https://images.unsplash.com/photo-1485965120184-e220f721d03e?w=600"},
 {id:2,name:"دوچرخه شهری",price:0,emoji:"🚴",image:"https://images.unsplash.com/photo-1507035895480-2b3156c31fc8?w=600"},
 {id:3,name:"کلاه ایمنی",price:0,emoji:"🪖",image:""},
