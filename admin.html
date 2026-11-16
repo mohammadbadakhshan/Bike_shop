@@ -1,0 +1,197 @@
+document.getElementById("name").value=data.name;
+ document.getElementById("price").value=data.price;
+ editingId=id;
+ document.getElementById("status").innerText=
+ "در حال ویرایش محصول؛ برای ذخیره تغییرات دکمه ثبت محصول را بزن.";
+ window.scrollTo({top:0,behavior:"smooth"});
+}
+
+async function deleteProduct(id){
+ if(!confirm("این محصول حذف شود؟"))return;
+
+ const {error}=await db.from("products")
+  .delete().eq("id",id);
+
+ if(error){
+  alert(error.message);
+  return;
+ }
+
+ loadProducts();
+}
+
+function clearForm(){
+ document.getElementById("name").value="";
+ document.getElementById("price").value="";
+ document.getElementById("photo").value="";
+ editingId=null;
+}
+
+loadProducts();
+</script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>مدیریت فروشگاه دوچرخه</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box}
+body{font-family:Tahoma,Arial;background:#f2f4f7;margin:0;padding:20px;color:#222}
+.container{max-width:850px;margin:auto}
+header{background:#17212b;color:white;padding:22px;border-radius:14px;margin-bottom:20px}
+h2{margin-top:0}
+.card{background:white;padding:22px;border-radius:14px;margin-bottom:20px;box-shadow:0 2px 10px #0001}
+input{width:100%;padding:13px;margin:8px 0 15px;border:1px solid #ddd;border-radius:8px;font-size:15px}
+button{padding:12px 18px;border:0;border-radius:8px;cursor:pointer;font-size:14px;margin:4px}
+.save{background:#39b54a;color:white}
+.delete{background:#dc3545;color:white}
+.edit{background:#1685cf;color:white}
+.product{border:1px solid #ddd;padding:14px;border-radius:10px;margin:12px 0}
+.product img{width:100px;height:90px;object-fit:contain}
+small{color:#777}
+</style>
+</head>
+<body>
+<div class="container">
+
+<header>
+<h2>🚲 پنل مدیریت BIKE SHOP</h2>
+<p>مدیریت محصولات فروشگاه</p>
+</header>
+
+<div class="card">
+<h2>افزودن محصول جدید</h2>
+
+<label>نام محصول</label>
+<input id="name" placeholder="مثلاً دوچرخه کوهستان">
+
+<label>قیمت (تومان)</label>
+<input id="price" type="number" placeholder="مثلاً 5000000">
+
+<label>عکس محصول</label>
+<input id="photo" type="file" accept="image/*">
+
+<button class="save" onclick="saveProduct()">ثبت محصول</button>
+<p id="status"></p>
+</div>
+
+<div class="card">
+<h2>محصولات ثبت شده</h2>
+<div id="products">در حال دریافت محصولات...</div>
+</div>
+
+</div>
+
+<script>
+const SUPABASE_URL = "آدرس پروژه Supabase";
+const SUPABASE_KEY = "کلید عمومی anon یا publishable";
+
+const db = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY
+);
+
+let editingId = null;
+
+async function loadProducts(){
+ const area=document.getElementById("products");
+ area.innerHTML="در حال دریافت...";
+
+ const {data,error}=await db
+ .from("products")
+ .select("*")
+ .order("id",{ascending:false});
+
+ if(error){
+  area.innerHTML="خطا در دریافت محصولات: "+error.message;
+  return;
+ }
+
+ area.innerHTML="";
+
+ data.forEach(p=>{
+  area.innerHTML+=
+  <div class="product">
+  <img src="${p['image-url']||''}" alt="">
+  <h3>${p.name||''}</h3>
+  <p>${Number(p.price||0).toLocaleString('fa-IR')} تومان</p>
+  <button class="edit" onclick="editProduct(${p.id})">ویرایش</button>
+  <button class="delete" onclick="deleteProduct(${p.id})">حذف</button>
+  </div>;
+ });
+}
+
+async function saveProduct(){
+ const name=document.getElementById("name").value.trim();
+ const price=Number(document.getElementById("price").value);
+ const photo=document.getElementById("photo").files[0];
+ const status=document.getElementById("status");
+
+ if(!name||!price){
+  status.innerText="نام و قیمت را وارد کن.";
+  return;
+ }
+
+ status.innerText="در حال ذخیره...";
+
+ let imageUrl="";
+
+ if(photo){
+  const fileName=Date.now()+"-"+photo.name.replace(/[^a-zA-Z0-9._-]/g,"_");
+
+  const {error:uploadError}=await db.storage
+   .from("product-images")
+   .upload(fileName,photo);
+
+  if(uploadError){
+   status.innerText="خطای بارگذاری عکس: "+uploadError.message;
+   return;
+  }
+
+  const {data}=db.storage
+   .from("product-images")
+   .getPublicUrl(fileName);
+
+  imageUrl=data.publicUrl;
+ }
+
+ let result;
+
+ if(editingId){
+  const updateData={name,price};
+  if(imageUrl) updateData["image-url"]=imageUrl;
+
+  result=await db.from("products")
+   .update(updateData)
+   .eq("id",editingId);
+ }else{
+  result=await db.from("products")
+   .insert({
+    name:name,
+    price:price,
+    "image-url":imageUrl
+   });
+ }
+
+ if(result.error){
+  status.innerText="خطا: "+result.error.message;
+  return;
+ }
+
+ status.innerText="محصول با موفقیت ذخیره شد.";
+ clearForm();
+ loadProducts();
+}
+
+async function editProduct(id){
+ const {data,error}=await db.from("products")
+  .select("*").eq("id",id).single();
+
+ if(error){
+  alert(error.message);
+  return;
+ }
