@@ -1,36 +1,4 @@
-document.getElementById("name").value=data.name;
- document.getElementById("price").value=data.price;
- editingId=id;
- document.getElementById("status").innerText=
- "در حال ویرایش محصول؛ برای ذخیره تغییرات دکمه ثبت محصول را بزن.";
- window.scrollTo({top:0,behavior:"smooth"});
-}
 
-async function deleteProduct(id){
- if(!confirm("این محصول حذف شود؟"))return;
-
- const {error}=await db.from("products")
-  .delete().eq("id",id);
-
- if(error){
-  alert(error.message);
-  return;
- }
-
- loadProducts();
-}
-
-function clearForm(){
- document.getElementById("name").value="";
- document.getElementById("price").value="";
- document.getElementById("photo").value="";
- editingId=null;
-}
-
-loadProducts();
-</script>
-</body>
-</html>
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
