@@ -224,7 +224,27 @@ document.getElementById("copyStatus").textContent="متن سفارش کپی شد
 }).catch(()=>{document.getElementById("copyStatus").textContent="شماره سفارش: "+currentOrder.number;});
 }
 }
-renderProducts();
+(async function loadProducts() {
+  const { data, error } = await supabaseClient
+    .from('products')
+    .select('*');
+
+  if (error) {
+    console.error(error);
+    alert('خطا در دریافت محصولات');
+    return;
+  }
+
+  products = data.map(p => ({
+    id: p.id,
+    name: p.name,
+    price: Number(p.price) || 0,
+    emoji: '🚲',
+    image: p['image-url'] || ''
+  }));
+
+  renderProducts();
+})();
 updateCart();
 </script>
 </body>
