@@ -1,355 +1,431 @@
-if(result.error){
-    message("خطا در ذخیره: " + result.error.message);
-    return;
-  }
-
-  message("محصول با موفقیت ذخیره شد.");
-  clearForm();
-  loadProducts();
-}
-
-async function editProduct(id){
-  const {data,error} = await db.from("products")
-    .select("*")
-    .eq("id",id)
-    .single();
-
-  if(error){
-    alert("خطا: " + error.message);
-    return;
-  }
-
-  editingId = id;
-  currentImage = data["image-url"] || "";
-
-  el("name").value = data.name || "";
-  el("price").value = data.price ?? "";
-  el("quantity").value = data.quantity ?? 0;
-  el("description").value = data.description || "";
-  el("photo").value = "";
-
-  el("formTitle").textContent = "ویرایش محصول";
-  el("saveBtn").textContent = "ذخیره تغییرات";
-  el("cancelBtn").classList.remove("hidden");
-
-  window.scrollTo({top:0,behavior:"smooth"});
-}
-
-async function deleteProduct(id){
-  if(!confirm("آیا از حذف این محصول مطمئنی؟")) return;
-
-  const {error} = await db.from("products")
-    .delete()
-    .eq("id",id);
-
-  if(error){
-    alert("خطا در حذف: " + error.message);
-    return;
-  }
-
-  if(editingId === id) clearForm();
-  alert("محصول حذف شد.");
-  loadProducts();
-}
-
-function clearForm(){
-  editingId = null;
-  currentImage = "";
-  el("name").value = "";
-  el("price").value = "";
-  el("quantity").value = "0";
-  el("description").value = "";
-  el("photo").value = "";
-  el("formTitle").textContent = "افزودن محصول جدید";
-  el("saveBtn").textContent = "ثبت محصول";
-  el("cancelBtn").classList.add("hidden");
-  message("");
-}
-
-db.auth.onAuthStateChange((_event,session) => {
-  if(!session){
-    el("adminPanel").classList.add("hidden");
-    el("loginBox").classList.remove("hidden");
-  }
-});
-
-checkSession();
-</script>
-</body>
-</html><!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>پنل مدیریت BIKE SHOP</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<style>
-*{box-sizing:border-box}
-body{font-family:Tahoma,Arial;background:#f2f4f7;margin:0;padding:16px;color:#222}
-.container{max-width:900px;margin:auto}
-header{background:#17212b;color:white;padding:22px;border-radius:14px;margin-bottom:18px}
-.card{background:white;padding:20px;border-radius:14px;margin-bottom:18px;box-shadow:0 2px 10px #0001}
-h2{margin-top:0}
-label{display:block;margin-top:12px;font-size:14px}
-input,textarea{width:100%;padding:12px;margin:7px 0;border:1px solid #ddd;border-radius:8px;font:inherit}
-textarea{min-height:90px;resize:vertical}
-button{padding:12px 17px;border:0;border-radius:8px;cursor:pointer;font:inherit;margin:4px}
-button:disabled{opacity:.5;cursor:not-allowed}
-.save{background:#239b56;color:white}
-.edit{background:#1685cf;color:white}
-.delete{background:#dc3545;color:white}
-.gray{background:#e5e7eb;color:#222}
-.product{border:1px solid #ddd;padding:14px;border-radius:10px;margin:12px 0;display:flex;gap:14px;align-items:center;flex-wrap:wrap}
-.product img{width:110px;height:100px;object-fit:contain;background:#f8f8f8;border-radius:8px}
-.details{flex:1;min-width:180px}
-.stock{font-size:13px;color:#555}
-.out{color:#c62828;font-weight:bold}
-#status{white-space:pre-wrap;color:#333}
-.hidden{display:none}
-.actions{display:flex;flex-wrap:wrap;gap:5px}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>پنل مدیریت فروشگاه BIKE SHOP</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: Tahoma, Arial, sans-serif;
+      background: #f2f4f7;
+      color: #222;
+    }
+    .header {
+      background: #101827;
+      color: white;
+      padding: 25px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+    }
+    .card {
+      background: white;
+      padding: 22px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 10px #0000000c;
+    }
+    input, textarea {
+      width: 100%;
+      padding: 12px;
+      margin: 8px 0 15px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 14px;
+    }
+    button {
+      border: 0;
+      border-radius: 8px;
+      padding: 11px 18px;
+      margin: 4px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 14px;
+    }
+    .primary { background: #1769aa; color: white; }
+    .danger { background: #d93636; color: white; }
+    .gray { background: #687386; color: white; }
+    .product {
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      padding: 15px;
+      margin: 12px 0;
+      background: white;
+    }
+    .product img {
+      width: 110px;
+      height: 100px;
+      object-fit: contain;
+      display: block;
+      margin-bottom: 10px;
+    }
+    .hidden { display: none !important; }
+    #status, #loginStatus {
+      margin-top: 12px;
+      line-height: 2;
+      color: #b42318;
+      overflow-wrap: anywhere;
+    }
+    label { font-weight: bold; }
+  </style>
 </head>
+
 <body>
-<div class="container">
 
-<header>
-<h2>🚲 پنل مدیریت BIKE SHOP</h2>
-<p>مدیریت محصولات فروشگاه</p>
-</header>
+  <div class="header">
+    <h2>پنل مدیریت فروشگاه BIKE SHOP</h2>
+    <p>مدیریت محصولات فروشگاه</p>
+  </div>
 
-<section class="card" id="loginBox">
-<h2>ورود مدیر</h2>
-<label>ایمیل حساب مدیر</label>
-<input id="email" type="email" autocomplete="username" placeholder="ایمیل حساب Supabase">
-<label>رمز عبور</label>
-<input id="password" type="password" autocomplete="current-password" placeholder="رمز عبور">
-<button class="save" id="loginBtn" onclick="login()">ورود به پنل</button>
-<p id="loginStatus"></p>
-</section>
+  <section class="card" id="loginBox">
+    <h3>ورود مدیر</h3>
 
-<div id="adminPanel" class="hidden">
-<section class="card">
-<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap">
-<h2 id="formTitle">افزودن محصول جدید</h2>
-<button class="gray" onclick="logout()">خروج از حساب</button>
-</div>
+    <label>ایمیل مدیر</label>
+    <input id="email" type="email" placeholder="ایمیل حساب مدیر">
 
-<label>نام محصول</label>
-<input id="name" placeholder="مثلاً دوچرخه کوهستان">
+    <label>رمز عبور</label>
+    <input id="password" type="password" placeholder="رمز عبور">
 
-<label>قیمت (تومان)</label>
-<input id="price" type="number" min="0" placeholder="مثلاً 5000000">
+    <button class="primary" id="loginBtn" onclick="login()">ورود به پنل</button>
+    <p id="loginStatus"></p>
+  </section>
 
-<label>تعداد موجودی</label>
-<input id="quantity" type="number" min="0" step="1" value="0">
+  <section id="adminPanel" class="hidden">
 
-<label>توضیحات محصول</label>
-<textarea id="description" placeholder="توضیحات محصول را بنویسید"></textarea>
+    <div class="card">
+      <button class="gray" onclick="logout()">خروج از حساب</button>
+      <h3 id="formTitle">افزودن محصول جدید</h3>
 
-<label>عکس محصول</label>
-<input id="photo" type="file" accept="image/*">
+      <form id="productForm">
+        <label>نام محصول</label>
+        <input id="name" type="text" required placeholder="نام محصول">
 
-<button class="save" id="saveBtn" onclick="saveProduct()">ثبت محصول</button>
-<button class="gray hidden" id="cancelBtn" onclick="clearForm()">لغو ویرایش</button>
-<p id="status"></p>
-</section>
+        <label>قیمت (تومان)</label>
+        <input id="price" type="number" min="0" required placeholder="قیمت">
 
-<section class="card">
-<h2>محصولات ثبت‌شده</h2>
-<button class="gray" onclick="loadProducts()">بروزرسانی فهرست</button>
-<div id="products">در حال دریافت محصولات...</div>
-</section>
-</div>
-</div>
+        <label>تعداد موجودی</label>
+        <input id="quantity" type="number" min="0" required value="0">
+
+        <label>توضیحات محصول</label>
+        <textarea id="description" rows="4" placeholder="توضیحات محصول"></textarea>
+
+        <label>عکس محصول</label>
+        <input id="photo" type="file" accept="image/*">
+
+        <button class="primary" type="submit" id="saveBtn">ذخیره محصول</button>
+        <button class="gray hidden" type="button" id="cancelBtn" onclick="cancelEdit()">لغو ویرایش</button>
+      </form>
+
+      <p id="status"></p>
+    </div>
+
+    <div class="card">
+      <h3>محصولات فروشگاه</h3>
+      <button class="primary" onclick="loadProducts()">به‌روزرسانی فهرست</button>
+      <div id="productsList">در حال بارگذاری...</div>
+    </div>
+
+  </section>
 
 <script>
-const SUPABASE_URL = "آhttps://kumtiwfvoavuygevhrjy.supabase.co";
-const SUPABASE_KEY = "sb_publishable_pA8mhx3UvQUpmhpZ5MLp4w_In0eipwE";
+  const SUPABASE_URL = "https://kumtiwfvoavuygevhrjy.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_pA8mhx3UvQUpmhpZ5MLp4w_In0eipwE";
 
-const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  const ADMIN_UID = "320c43f8-2f9b-4ee2-9779-cde175326012";
+  const BUCKET = "product-images";
 
-let editingId = null;
-let currentImage = "";
+  const db = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_KEY
+  );
 
-function el(id){
-  return document.getElementById(id);
-}
+  let editingId = null;
+  let oldImageUrl = "";
 
-function message(text){
-  el("status").textContent = text;
-}
+  function el(id) {
+    return document.getElementById(id);
+  }function showMessage(message, isError = false) {
+    el("status").style.color = isError ? "#b42318" : "#16803c";
+    el("status").textContent = message;
+  }
 
-function escapeHTML(value){
-  return String(value ?? "").replace(/[&<>"']/g, ch => ({
-    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
-  })[ch]);
-}
+  async function login() {
+    const email = el("email").value.trim();
+    const password = el("password").value;
 
-async function login(){
-  const email = el("email").value.trim();
-  const password = el("password").value;
-  el("loginStatus").textContent = "در حال ورود...";
-  el("loginBtn").disabled = true;
+    if (!email || !password) {
+      el("loginStatus").textContent = "ایمیل و رمز عبور را وارد کن.";
+      return;
+    }
 
-  const {data,error} = await db.auth.signInWithPassword({
-    email,
-    password
+    el("loginBtn").disabled = true;
+    el("loginStatus").textContent = "در حال ورود...";
+
+    const { data, error } = await db.auth.signInWithPassword({
+      email: email,
+      password: password
+    });
+
+    el("loginBtn").disabled = false;
+
+    if (error) {
+      el("loginStatus").textContent = "خطا در ورود: " + error.message;
+      return;
+    }
+
+    if (data.user.id !== ADMIN_UID) {
+      await db.auth.signOut();
+      el("loginStatus").textContent = "این حساب اجازه ورود به پنل مدیریت را ندارد.";
+      return;
+    }
+
+    el("loginStatus").textContent = "";
+    showAdmin();
+  }
+
+  function showAdmin() {
+    el("loginBox").classList.add("hidden");
+    el("adminPanel").classList.remove("hidden");
+    loadProducts();
+  }
+
+  async function logout() {
+    await db.auth.signOut();
+    el("adminPanel").classList.add("hidden");
+    el("loginBox").classList.remove("hidden");
+    el("password").value = "";
+    el("loginStatus").textContent = "از حساب خارج شدی.";
+  }
+
+  async function checkSession() {
+    const { data } = await db.auth.getSession();
+
+    if (data.session && data.session.user.id === ADMIN_UID) {
+      showAdmin();
+    } else {
+      if (data.session) await db.auth.signOut();
+      el("loginBox").classList.remove("hidden");
+      el("adminPanel").classList.add("hidden");
+    }
+  }
+
+  async function loadProducts() {
+    el("productsList").textContent = "در حال بارگذاری محصولات...";
+
+    const { data, error } = await db
+      .from("products")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      el("productsList").textContent = "خطا در دریافت محصولات: " + error.message;
+      return;
+    }
+
+    el("productsList").innerHTML = "";
+
+    if (!data || data.length === 0) {
+      el("productsList").textContent = "هنوز محصولی ثبت نشده است.";
+      return;
+    }
+
+    data.forEach(product => {
+      const item = document.createElement("div");
+      item.className = "product";
+
+      const image = product["image-url"] || "";
+
+      item.innerHTML = 
+        ${image ? <img src="${escapeHTML(image)}" alt="عکس محصول"> : ""}
+        <h3>${escapeHTML(product.name || "")}</h3>
+        <p>قیمت: ${Number(product.price || 0).toLocaleString("fa-IR")} تومان</p>
+        <p>موجودی: ${Number(product.quantity || 0).toLocaleString("fa-IR")}</p>
+        <p>${escapeHTML(product.description || "")}</p>
+        <button class="primary" data-action="edit" data-id="${escapeHTML(product.id)}">ویرایش</button>
+        <button class="danger" data-action="delete" data-id="${escapeHTML(product.id)}">حذف</button>
+      ;
+
+      el("productsList").appendChild(item);
+    });
+  }
+
+  function escapeHTML(value) {
+    return String(value).replace(/[&<>"']/g, function(char) {
+      return {
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+      }[char];
+    });
+  }
+
+  async function uploadImage(file) {
+    const extension = file.name.split(".").pop().toLowerCase();
+    const filePath = Date.now() + "-" + Math.random().toString(36).slice(2) + "." + extension;
+
+    const { error } = await db.storage
+      .from(BUCKET)
+      .upload(filePath, file, {
+        cacheControl: "3600",
+        upsert: false
+      });
+
+    if (error) throw error;
+
+    const { data } = db.storage
+      .from(BUCKET)
+      .getPublicUrl(filePath);
+
+    return data.publicUrl;
+  }
+
+  el("productForm").addEventListener("submit", async function(event) {
+    event.preventDefault();
+
+    const saveBtn = el("saveBtn");
+    saveBtn.disabled = true;
+    showMessage("در حال ذخیره محصول...");try {
+      const name = el("name").value.trim();
+      const price = Number(el("price").value);
+      const quantity = Number(el("quantity").value);
+      const description = el("description").value.trim();
+      const file = el("photo").files[0];
+
+      if (!name  !Number.isFinite(price)  price < 0 ||
+          !Number.isInteger(quantity) || quantity < 0) {
+        throw new Error("نام، قیمت و تعداد موجودی را درست وارد کن.");
+      }
+
+      let imageUrl = oldImageUrl;
+
+      if (file) {
+        imageUrl = await uploadImage(file);
+      }
+
+      const productData = {
+        name: name,
+        price: price,
+        quantity: quantity,
+        description: description,
+        "image-url": imageUrl
+      };
+
+      let result;
+
+      if (editingId) {
+        result = await db
+          .from("products")
+          .update(productData)
+          .eq("id", editingId);
+      } else {
+        result = await db
+          .from("products")
+          .insert([productData]);
+      }
+
+      if (result.error) throw result.error;
+
+      showMessage(editingId ? "محصول ویرایش شد." : "محصول با موفقیت اضافه شد.");
+
+      clearForm();
+      await loadProducts();
+
+    } catch (error) {
+      showMessage("خطا: " + error.message, true);
+    }
+
+    saveBtn.disabled = false;
   });
 
-  el("loginBtn").disabled = false;
-  if(error){
-    el("loginStatus").textContent = "خطا در ورود: " + error.message;
-    return;
-  }
+  async function editProduct(id) {
+    const { data, error } = await db
+      .from("products")
+      .select("*")
+      .eq("id", id)
+      .single();
 
-  if(data.user.id !== "320c43f8-2f9b-4ee2-9779-cde175326012"){
-    await db.auth.signOut();
-    el("loginStatus").textContent = "این حساب اجازه مدیریت فروشگاه را ندارد.";
-    return;
-  }
-
-  showAdmin();
-}
-
-async function logout(){
-  await db.auth.signOut();
-  el("adminPanel").classList.add("hidden");
-  el("loginBox").classList.remove("hidden");
-  el("password").value = "";
-  el("loginStatus").textContent = "از حساب خارج شدی.";
-}
-
-function showAdmin(){
-  el("loginBox").classList.add("hidden");
-  el("adminPanel").classList.remove("hidden");
-  loadProducts();
-}
-
-async function checkSession(){
-  const {data} = await db.auth.getSession();
-  const user = data.session?.user;
-
-  if(user && user.id === "320c43f8-2f9b-4ee2-9779-cde175326012"){
-    showAdmin();
-  }else{
-    if(user) await db.auth.signOut();
-    el("loginBox").classList.remove("hidden");
-    el("adminPanel").classList.add("hidden");
-  }
-}
-
-async function loadProducts(){
-  const area = el("products");
-  area.textContent = "در حال دریافت محصولات...";
-
-  const {data,error} = await db
-    .from("products")
-    .select("*")
-    .order("id",{ascending:false});
-
-  if(error){
-    area.textContent = "خطا در دریافت محصولات: " + error.message;
-    return;
-  }
-
-  if(!data || data.length === 0){
-    area.textContent = "هنوز محصولی ثبت نشده است.";
-    return;
-  }
-
-  area.innerHTML = data.map(p => {
-    const image = p["image-url"] || "";
-    const quantity = Number(p.quantity || 0);
-    return 
-      <div class="product">
-        ${image ? <img src="${escapeHTML(image)}" alt=""> : <div>🚲 بدون عکس</div>}
-        <div class="details">
-          <h3>${escapeHTML(p.name)}</h3>
-          <p>${Number(p.price || 0).toLocaleString("fa-IR")} تومان</p>
-          <p class="stock ${quantity === 0 ? "out" : ""}">
-            ${quantity === 0 ? "ناموجود" : "موجودی: " + quantity}
-          </p>
-          <p>${escapeHTML(p.description || "")}</p>
-          <div class="actions">
-            <button class="edit" onclick="editProduct(${Number(p.id)})">ویرایش</button>
-            <button class="delete" onclick="deleteProduct(${Number(p.id)})">حذف</button>
-          </div>
-        </div>
-      </div>
-    ;
-  }).join("");
-}
-
-async function saveProduct(){
-  const name = el("name").value.trim();
-  const priceText = el("price").value.trim();
-  const quantityText = el("quantity").value.trim();
-  const description = el("description").value.trim();
-  const photo = el("photo").files[0];
-
-  if(!name  priceText === ""  quantityText === ""){
-    message("نام، قیمت و موجودی را وارد کن.");
-    return;
-  }
-
-  const price = Number(priceText);
-  const quantity = Number(quantityText);
-
-  if(!Number.isFinite(price)  price < 0 
-     !Number.isInteger(quantity) || quantity < 0){
-    message("قیمت یا موجودی معتبر نیست.");
-    return;
-  }
-
-  el("saveBtn").disabled = true;
-  message("در حال ذخیره محصول...");
-
-  let imageUrl = currentImage;
-
-  if(photo){
-    if(!photo.type.startsWith("image/")){
-      message("فایل انتخاب‌شده عکس نیست.");
-      el("saveBtn").disabled = false;
+    if (error) {
+      showMessage("خطا در دریافت محصول: " + error.message, true);
       return;
     }
 
-    const safeName = photo.name.replace(/[^a-zA-Z0-9._-]/g,"_");
-    const fileName = Date.now() + "-" + safeName;
+    editingId = id;
+    oldImageUrl = data["image-url"] || "";
 
-    const {error:uploadError} = await db.storage
-      .from("product-images")
-      .upload(fileName,photo);
+    el("name").value = data.name || "";
+    el("price").value = data.price || 0;
+    el("quantity").value = data.quantity || 0;
+    el("description").value = data.description || "";
+    el("photo").value = "";
 
-    if(uploadError){
-      message("خطای آپلود عکس: " + uploadError.message);
-      el("saveBtn").disabled = false;
+    el("formTitle").textContent = "ویرایش محصول";
+    el("saveBtn").textContent = "ذخیره تغییرات";
+    el("cancelBtn").classList.remove("hidden");
+
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  async function deleteProduct(id) {
+    if (!confirm("آیا از حذف این محصول مطمئنی؟")) return;
+
+    const { error } = await db
+      .from("products")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      showMessage("خطا در حذف محصول: " + error.message, true);
       return;
     }
 
-    const {data:urlData} = db.storage
-      .from("product-images")
-      .getPublicUrl(fileName);
-
-    imageUrl = urlData.publicUrl;
+    showMessage("محصول حذف شد.");
+    await loadProducts();
   }
 
-  const productData = {
-    name,
-    price,
-    quantity,
-    description,
-    "image-url": imageUrl
-  };
-
-  let result;
-
-  if(editingId !== null){
-    result = await db.from("products")
-      .update(productData)
-      .eq("id",editingId);
-  }else{
-    result = await db.from("products")
-      .insert(productData);
+  function clearForm() {
+    el("productForm").reset();
+    editingId = null;
+    oldImageUrl = "";
+    el("formTitle").textContent = "افزودن محصول جدید";
+    el("saveBtn").textContent = "ذخیره محصول";
+    el("cancelBtn").classList.add("hidden");
   }
 
-  el("saveBtn").disabled = false;
+  function cancelEdit() {
+    clearForm();
+    showMessage("ویرایش لغو شد.");
+  }
+
+  el("productsList").addEventListener("click", function(event) {
+    const button = event.target.closest("button[data-action]");
+    if (!button) return;
+
+    const id = button.dataset.id;
+
+    if (button.dataset.action === "edit") {
+      editProduct(id);
+    } else if (button.dataset.action === "delete") {
+      deleteProduct(id);
+    }
+  });
+
+  checkSession();
+
+  db.auth.onAuthStateChange((event, session) => {
+    if (event === "SIGNED_OUT") {
+      el("adminPanel").classList.add("hidden");
+      el("loginBox").classList.remove("hidden");
+    }
+  });
+</script>
+
+</body>
+</html>
