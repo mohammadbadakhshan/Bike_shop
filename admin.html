@@ -298,7 +298,7 @@
       const description = el("description").value.trim();
       const file = el("photo").files[0];
 
-      if (!name  !Number.isFinite(price)  price < 0 ||
+      if (!name  !Number.isFinite(price)  price < 0) {
           !Number.isInteger(quantity) || quantity < 0) {
         throw new Error("نام، قیمت و تعداد موجودی را درست وارد کن.");
       }
