@@ -153,8 +153,7 @@
   }function showMessage(message, isError = false) {
     el("status").style.color = isError ? "#b42318" : "#16803c";
     el("status").textContent = message;
-  }
-
+  
   async function login() {
     const email = el("email").value.trim();
     const password = el("password").value;
@@ -424,7 +423,7 @@
       el("adminPanel").classList.add("hidden");
       el("loginBox").classList.remove("hidden");
     }
-  });
+  });window.login = login;
 </script>
 
 </body>
