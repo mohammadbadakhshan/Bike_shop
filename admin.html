@@ -240,7 +240,7 @@
 
       const image = product["image-url"] || "";
 
-      item.innerHTML = 
+      item.innerHTML =`
         ${image ? <img src="${escapeHTML(image)}" alt="عکس محصول"> : ""}
         <h3>${escapeHTML(product.name || "")}</h3>
         <p>قیمت: ${Number(product.price || 0).toLocaleString("fa-IR")} تومان</p>
@@ -248,7 +248,7 @@
         <p>${escapeHTML(product.description || "")}</p>
         <button class="primary" data-action="edit" data-id="${escapeHTML(product.id)}">ویرایش</button>
         <button class="danger" data-action="delete" data-id="${escapeHTML(product.id)}">حذف</button>
-      ;
+      `;
 
       el("productsList").appendChild(item);
     });
